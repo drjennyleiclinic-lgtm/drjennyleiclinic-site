@@ -1,0 +1,161 @@
+# ============================================================
+# 晨昕診所 內容後台設定
+# 搬到新帳號時，這個檔案要改 3 處（完整流程見 deploy-guide.md）：
+#   1. repo:        新的「GitHub帳號/repo名稱」  ← 沒改的話，後台會去改「舊的 repo」，網站永遠不會變
+#   2. base_url:    新的登入中繼 Worker 網址（sveltia-cms-auth）
+#   3. site_url / display_url: 新網站網址（只影響後台右上角「查看網站」按鈕）
+# 另外後台「診所資料 → 網站網址」也要改成新網域（分享連結、Google 用）。
+# ============================================================
+backend:
+  name: github
+  repo: drjennyleiclinic-lgtm/drjennyleiclinic-site
+  branch: main
+  base_url: https://sveltia-cms-auth.drjennyleiclinic.workers.dev
+  auth_endpoint: auth
+
+site_url: https://drjennyleiclinic.drjennyleiclinic.workers.dev
+display_url: https://drjennyleiclinic.drjennyleiclinic.workers.dev
+locale: zh-Hant
+
+media_folder: "images/uploads"   # 圖片上傳後存放的位置
+public_folder: "/images/uploads"
+
+collections:
+  # ---------- 診所公告 ----------
+  - name: "announcements"
+    label: "診所公告"
+    files:
+      - name: "announcements"
+        label: "公告列表"
+        file: "content/announcements.json"
+        fields:
+          - label: "公告"
+            name: "items"
+            widget: "list"
+            summary: "{{fields.title}}（{{fields.date}}）"
+            fields:
+              - { label: "標題", name: "title", widget: "string" }
+              - { label: "公告日期", name: "date", widget: "string", hint: "格式：2026-07-07" }
+              - { label: "內容", name: "body", widget: "markdown" }
+              - { label: "公開", name: "show", widget: "boolean", default: true, hint: "關閉即下架，公告頁不會顯示，但資料保留不用刪除" }
+              - { label: "置頂公告", name: "pinned", widget: "boolean", default: false, hint: "打開後會顯示在首頁最上方那一條。同時打開多則時，只會顯示日期最新的那一則。" }
+
+
+  # ---------- 關於晨昕背景圖 ----------
+  - name: "about"
+    label: "關於晨昕背景圖"
+    files:
+      - name: "about"
+        label: "關於晨昕背景圖"
+        file: "content/about.json"
+        fields:
+          - { label: "顯示背景圖", name: "show", widget: "boolean", default: true, hint: "關掉就恢復成沒有背景圖的樣子，圖片保留不用刪除" }
+          - { label: "電腦版背景圖", name: "bg", widget: "image", required: false, hint: "橫式的診所實景照最好。圖會鋪滿整塊「關於晨昕」，上緣淡出、底部切齊內文。任何比例都會自動貼合" }
+          - { label: "手機版背景圖", name: "bgMobile", widget: "image", required: false, hint: "選填。手機版面較窄，沒上傳就沿用電腦版那張並自動裁切填滿" }
+          - { label: "標題高度(0-100)", name: "eye", widget: "number", default: 40, value_type: "int", min: 0, max: 100, required: false, hint: "「關於晨昕」白字要對齊圖片的哪個高度，數字越小越靠上。預設 40（大約是照片中人物眼睛的高度）。換圖後若標題壓到臉，微調這個數字" }
+
+  # ---------- 診所資料（門診時間 / 醫療團隊 / 聯絡方式） ----------
+  - name: "site"
+    label: "診所資料(醫生資訊、開診時間)"
+    files:
+      - name: "site"
+        label: "診所基本資料"
+        file: "content/site.json"
+        fields:
+          - { label: "診所名稱", name: "name", widget: "string" }
+          - { label: "網站網址", name: "baseUrl", widget: "string", hint: "正式網域，例如 https://jenny-clinic.com（結尾不要斜線）。分享到 LINE/FB 的連結、Google 搜尋都用這個網址，換網域時一定要改" }
+          - { label: "分享預覽圖", name: "ogImage", widget: "image", required: false, hint: "分享到 LINE/FB 時顯示的圖，建議 1200x630" }
+          - { label: "電話（顯示用）", name: "phone", widget: "string", hint: "例如 02-2518-1268" }
+          - { label: "電話（撥號用）", name: "phoneLink", widget: "string", hint: "只留數字，例如 0225181268" }
+          - { label: "地址", name: "address", widget: "string" }
+          - { label: "Email", name: "email", widget: "string" }
+          - { label: "線上預約連結", name: "booking", widget: "string" }
+          - { label: "LINE 加好友連結", name: "line", widget: "string" }
+          - { label: "Facebook 粉專連結", name: "facebook", widget: "string" }
+          - { label: "Google 地圖嵌入網址", name: "mapEmbed", widget: "text", hint: "Google 地圖 → 分享 → 嵌入地圖 → 複製 iframe 裡 src 的網址" }
+
+          - label: "服務項目"
+            name: "services"
+            widget: "list"
+            summary: "{{fields.name}}"
+            fields:
+              - { label: "名稱", name: "name", widget: "string", hint: "名稱要和原本一致才會有對應圖示" }
+
+          - label: "門診時間"
+            name: "hours"
+            widget: "object"
+            fields:
+              - { label: "備註", name: "note", widget: "string", required: false }
+              - { label: "特別說明", name: "extra", widget: "text", required: false }
+              - label: "時段"
+                name: "rows"
+                widget: "list"
+                summary: "{{fields.slot}} {{fields.time}}"
+                fields:
+                  - { label: "時段名稱", name: "slot", widget: "string", hint: "上午 / 下午 / 晚上" }
+                  - { label: "時間", name: "time", widget: "string", hint: "例如 09:00–12:30" }
+                  - { label: "週一", name: "mon", widget: "string", required: false, hint: "填醫師姓名，休診請填「休診」" }
+                  - { label: "週二", name: "tue", widget: "string", required: false }
+                  - { label: "週三", name: "wed", widget: "string", required: false }
+                  - { label: "週四", name: "thu", widget: "string", required: false }
+                  - { label: "週五", name: "fri", widget: "string", required: false }
+                  - { label: "週六", name: "sat", widget: "string", required: false }
+                  - { label: "週日", name: "sun", widget: "string", required: false }
+
+          - label: "醫療團隊"
+            name: "team"
+            widget: "list"
+            summary: "{{fields.name}}（{{fields.title}}）"
+            hint: >-
+              排在最前面的兩位會顯示在首頁，其餘只出現在「完整醫療團隊」頁（網址 /team/）。
+              順序＝這裡由上到下的排列；首頁是兩欄，第一位在左、第二位在右。
+              用每張卡片標題中間的拖曳把手調整位置：把第三位拖到第二位，原本的第二位會自動變成第三位，第一位不受影響。
+              把手點一下之後也可以用鍵盤上下鍵一次移一格，Home／End 直接送到最前或最後；手機沒有滑鼠，會改成顯示「上移／下移」按鈕。
+            fields:
+              - { label: "姓名", name: "name", widget: "string" }
+              - { label: "職稱", name: "title", widget: "string" }
+              - { label: "照片", name: "photo", widget: "image", required: false }
+              - label: "學經歷"
+                name: "creds"
+                widget: "list"
+                field: { label: "一條學經歷", name: "cred", widget: "string" }
+
+  # ---------- 健康新知 ----------
+  - name: "articles"
+    label: "健康新知"
+    label_singular: "文章"
+    folder: "content/articles"
+    create: true
+    slug: "{{fields.date}}-{{slug}}"
+    summary: "{{title}}（{{category}}｜{{date}}）"
+    fields:
+      - { label: "標題", name: "title", widget: "string" }
+      - { label: "發布日期", name: "date", widget: "string", hint: "格式：2026-07-14" }
+      - label: "分類（可複選，像 hashtag）"
+        name: "category"
+        widget: "relation"
+        collection: "categories"
+        file: "categories"
+        multiple: true
+        min: 1
+        search_fields: ["items.*.name"]
+        value_field: "items.*.name"
+        display_fields: ["items.*.name"]
+        hint: "可勾多個；要新增分類請到左側「文章分類」區新增"
+      - { label: "作者", name: "author", widget: "string", default: "李泳姿 院長" }
+      - { label: "摘要", name: "excerpt", widget: "text", hint: "顯示在文章列表卡片上的簡短介紹" }
+      - { label: "封面圖", name: "thumbnail", widget: "image", required: false }
+      - { label: "內文", name: "body", widget: "markdown" }
+  - name: "categories"
+    label: "文章分類"
+    files:
+      - name: "categories"
+        label: "分類清單"
+        file: "content/categories.json"
+        fields:
+          - label: "分類"
+            name: "items"
+            widget: "list"
+            summary: "{{fields.name}}"
+            fields:
+              - { label: "名稱", name: "name", widget: "string" }     

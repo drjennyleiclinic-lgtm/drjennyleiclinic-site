@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /content/
+
+Sitemap: https://   practicemoving.joyseeker9453.workers.dev/sitemap.xml
