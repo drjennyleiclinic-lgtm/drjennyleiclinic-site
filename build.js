@@ -6,9 +6,14 @@
    4. 抽出 styles.css、產生 sitemap.xml
    零相依套件，只用 Node 內建模組。診所人員不需要理解此檔。
    ============================================================ */
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { marked } from 'marked';
+import sanitizeHtml from 'sanitize-html';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const ROOT = __dirname;
 const ART_DIR = path.join(ROOT, 'content', 'articles');
 const DATA_DIR = path.join(ROOT, 'data');
@@ -115,95 +120,51 @@ function absUrl(u) {
   return BASE + (u.startsWith('/') ? u : '/' + u);
 }
 
-/* ---------- 極簡 Markdown → HTML ---------- */
-/* esc() 之後再對 href 做一次 esc 會變成 &amp;amp;，所以取回原字元再重新跳脫 */
-function unesc(t) {
-  return String(t).replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
-}
-function inline(s) {
-  /* 先把已經轉好的 <img> / <a> 收進 slots 換成佔位符，
-     這樣後面的「裸網址自動連結」不會把它們的 href 再包一層。 */
-  const slots = [];
-  const keep = html => '\u0000' + (slots.push(html) - 1) + '\u0000';
-  const out = esc(s)
-    /* 反斜線跳脫：後台編輯器會把 1. * _ # 之類的字元存成 \1\. \* ，這裡還原成原字元，不讓反斜線跑出來 */
-    .replace(/\\([\\`*_{}\[\]()#+\-.!~|]|&gt;)/g, (_, c) => keep(c))
-    /* 從 FB 複製的文章，表情符號（1️⃣ 2️⃣ 🩺…）會變成外連 FB 的小圖：
-       直接換回表情字元本身（alt 就是表情），不依賴 FB 圖床、也不會每個表情自成一行 */
-    .replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]*fbcdn\.net\/images\/emoji\.php[^)\s]*)\)/g, (_, alt) => keep(alt))
-    .replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g,
-      (_, alt, src) => keep('<img src="' + esc(safeUrl(unesc(src))) + '" alt="' + alt + '" loading="lazy">'))
-    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, txt, href) => {
-      /* 連結文字本身也可能有 Markdown，例如 [**#專注全穀物**](...)。
-         舊寫法會先把整個連結收進 slot，導致 ** 被原樣顯示。
-         這裡先處理連結文字裡的行內格式，再建立 <a>。 */
-      const label = txt
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/~~([^~]+)~~/g, '<del>$1</del>')
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-        .replace(/(?<![\w])__([^_\n]+)__(?![\w])/g, '<strong>$1</strong>')
-        .replace(/(?<![\w])_([^_\n]+)_(?![\w])/g, '<em>$1</em>');
-      const rawHref = unesc(href);
+/* ---------- Markdown → HTML（marked + sanitize-html） ----------
+   COMMIT 2：原本 inline()/mdToHtml() 是兩條各自維護的極簡 regex parser，
+   首頁公告條（inline，只做行內格式）跟公告頁／文章（mdToHtml，含標題等區塊語法）
+   長期不同步，導致首頁公告條打 # / ##### 只會原字吐出來。
+   現在統一改成 marked 解析 + sanitize-html 過濾，公告頁、首頁公告條、文章共用同一顆引擎，
+   輸出的 HTML 結構（<p> <h2>~<h6> <ul> <ol> <blockquote> <hr> <code> <a> <img>）
+   刻意對齊舊版，讓現有 CSS（.article-body / .notice-body / .ha-body）不用大改。 */
+marked.use({ gfm: true, breaks: true });
 
-      /* 從 Facebook 貼文複製進來的 hashtag 連結只是來源平台殘留。
-         保留使用者看得到的文字與粗體，但不再把文章綁回 Facebook。 */
-      if (/^https?:\/\/(?:www\.)?facebook\.com\/hashtag\//i.test(rawHref)) return keep(label);
+const MD_ALLOWED_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'strong', 'em', 'del', 'code', 'ul', 'ol', 'li', 'blockquote', 'hr', 'a', 'img', 'br'];
+const MD_ALLOWED_SCHEMES = ['http', 'https', 'mailto', 'tel'];
 
-      return keep('<a href="' + esc(safeUrl(rawHref)) + '" target="_blank" rel="noopener">' + label + '</a>');
-    })
-    /* 裸網址自動變連結：老闆直接貼 https://... 或 www.... 也能點 */
-    .replace(/(^|[\s(（【])((?:https?:\/\/|www\.)[^\s<>()（）「」【】]+)/g, (m, pre, url) => {
-      const tail = (url.match(/[.,;:!?。，、；：！？]+$/) || [''])[0];
-      const clean = tail ? url.slice(0, -tail.length) : url;
-      const href = clean.startsWith('www.') ? 'https://' + clean : clean;
-      return pre + keep('<a href="' + esc(safeUrl(unesc(href))) + '" target="_blank" rel="noopener">' + clean + '</a>') + tail;
-    })
-    .replace(/`([^`]+)`/g, (_, c) => keep('<code>' + c + '</code>'))
-    .replace(/~~([^~]+)~~/g, '<del>$1</del>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    /* 後台的粗體／斜體按鈕存出來的是底線語法（__粗體__、_斜體_），標準 Markdown 兩種都算數。
-       前後的 (?<![\w]) 是防呆：file_name_here 這種不會被當成斜體；中文不屬於 \w，不受影響。 */
-    .replace(/(?<![\w])__([^_\n]+)__(?![\w])/g, '<strong>$1</strong>')
-    .replace(/(?<![\w])_([^_\n]+)_(?![\w])/g, '<em>$1</em>');
-  /* 佔位符可能一層包一層（例如連結文字裡有圖片或跳脫字元），要還原到完全沒有佔位符為止；
-     只還原一次的話，連結裡的圖片會消失、文字中間會夾著看不見的控制字元 */
-  let res = out;
-  for (let n = 0; n < 5 && /\u0000\d+\u0000/.test(res); n++) {
-    res = res.replace(/\u0000(\d+)\u0000/g, (_, i) => slots[i]);
-  }
-  return res;
+/* 後台編輯器／從 FB 複製貼上時會出現、但舊 parser 有特別處理的幾種樣式，
+   在丟給 marked 之前先用文字層級處理掉，避免要碰 marked renderer 的內部 API：
+   1) 標題整體降一級，避開頁面本身的 h1；原本 5、6 級都收斂到 6 級（HTML 最小標題），
+      所以先把 6 個井號併成 5 個，再統一往下加 1 個井號。
+   2) FB 表情符號圖示（1️⃣ 2️⃣ 🩺…）直接還原成表情文字本身，不依賴 FB 圖床。
+   3) FB 貼文複製進來的 hashtag 連結只是來源平台殘留，拿掉外連但保留文字（含粗體等格式）。 */
+function preprocessMarkdown(md) {
+  let s = String(md == null ? '' : md);
+  s = s.replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]*fbcdn\.net\/images\/emoji\.php[^)\s]*)\)/g, (_, alt) => alt);
+  s = s.replace(/\[([^\]]+)\]\(\s*(https?:\/\/(?:www\.)?facebook\.com\/hashtag\/[^)\s]*)\s*\)/gi, (_, label) => label);
+  s = s.split(/\r?\n/).map(line => {
+    const m = line.match(/^( {0,3})(#{1,6})(\s+.*)$/);
+    if (!m) return line;
+    const level = Math.min(m[2].length, 5) + 1;
+    return m[1] + '#'.repeat(level) + m[3];
+  }).join('\n');
+  return s;
 }
-function mdToHtml(md) {
-  const blocks = md.split(/\r?\n\r?\n+/);
-  return blocks.map(b => {
-    const t = b.trim();
-    if (!t) return '';
-    /* 標題：後台工具列「標題1～6」存成 # ~ ######。
-       整體降一級（h1→h2…）避免和頁面本身的 h1 衝突；標題5、6 都收斂到 h6（HTML 最小級）。
-       順序必須從最多井號往下比，否則 ###### 會先被 # 那條吃掉。 */
-    if (/^######\s+/.test(t)) return '<h6>' + inline(t.replace(/^######\s+/, '')) + '</h6>';
-    if (/^#####\s+/.test(t)) return '<h6>' + inline(t.replace(/^#####\s+/, '')) + '</h6>';
-    if (/^####\s+/.test(t)) return '<h5>' + inline(t.replace(/^####\s+/, '')) + '</h5>';
-    if (/^###\s+/.test(t)) return '<h4>' + inline(t.replace(/^###\s+/, '')) + '</h4>';
-    if (/^##\s+/.test(t)) return '<h3>' + inline(t.replace(/^##\s+/, '')) + '</h3>';
-    if (/^#\s+/.test(t)) return '<h2>' + inline(t.replace(/^#\s+/, '')) + '</h2>';
-    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) return '<hr>';
-    if (t.split(/\r?\n/).every(l => /^>/.test(l.trim())))
-      return '<blockquote>' + mdToHtml(t.split(/\r?\n/).map(l => l.trim().replace(/^>\s?/, '')).join('\n')) + '</blockquote>';
-    if (t.split(/\r?\n/).every(l => /^\d+[.)]\s+/.test(l.trim()))) {
-      const items = t.split(/\r?\n/).map(l => '<li>' + inline(l.trim().replace(/^\d+[.)]\s+/, '')) + '</li>').join('');
-      return '<ol>' + items + '</ol>';
-    }
-    if (t.split(/\r?\n/).every(l => /^[-*]\s+/.test(l.trim()))) {
-      const items = t.split(/\r?\n/).map(l => '<li>' + inline(l.trim().replace(/^[-*]\s+/, '')) + '</li>').join('');
-      return '<ul>' + items + '</ul>';
-    }
-    return '<p>' + t.split(/\r?\n/).map(inline).join('<br>') + '</p>';
-  }).filter(Boolean).join('\n');
+
+function renderMarkdown(md) {
+  let html = marked.parse(preprocessMarkdown(md));
+  /* 圖片補上 loading="lazy"、連結補上 target="_blank" rel="noopener"，沿用舊版行為 */
+  html = html.replace(/<img\b(?![^>]*\bloading=)/g, '<img loading="lazy"');
+  html = html.replace(/<a\b(?![^>]*\btarget=)([^>]*)>/g, '<a$1 target="_blank" rel="noopener">');
+  return sanitizeHtml(html, {
+    allowedTags: MD_ALLOWED_TAGS,
+    allowedAttributes: { a: ['href', 'target', 'rel'], img: ['src', 'alt', 'loading'] },
+    allowedSchemes: MD_ALLOWED_SCHEMES,
+    allowedSchemesByTag: { img: ['http', 'https'] },
+    allowProtocolRelative: true
+  });
 }
+
 
 /* ---------- 文章 ---------- */
 const articles = [];
@@ -222,7 +183,7 @@ if (fs.existsSync(ART_DIR)) {
       tags = s.split(/[,、]/).map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
     }
     if (!tags.length) tags = ['未分類'];
-    const html = mdToHtml(body);
+    const html = renderMarkdown(body);
     const rawName = f.replace(/\.md$/, '');
     articles.push({
       slug: makeSlug(rawName, meta.slug, usedSlugs),
@@ -249,12 +210,48 @@ if (fs.existsSync(annSrc)) {
   catch (e) { console.error('announcements.json 格式錯誤：', e.message); process.exit(1); }
 }
 ann.items = (ann.items || []).sort((a, b) => String(b.date).localeCompare(String(a.date)));
-/* 首頁公告條以前是直接 esc(body)，完全沒解析 Markdown，所以 **粗體** 會原字吐出來。
-   這裡先在建置時解析好存成 bodyHtml，前端直接用，避免前後端各養一套 parser。
-   .ha-body 有 white-space:pre-wrap，所以只做行內解析、保留原本的換行，不包 <p>。 */
-ann.items = ann.items.map(it => Object.assign({}, it, {
-  bodyHtml: String(it && it.body || '').split(/\r?\n/).map(inline).join('\n')
-}));
+
+/* ---- 首頁「精簡版」小提示條專用處理 ----
+   首頁預設顯示的是 NOTICES 區塊（#notices-announcement，跟 /notices/ 同一份完整內容，
+   只差在太高時用 scroll/clip/full 框住），不是這裡處理的對象。
+   這裡的 keepFirstImage() 只給真正的精簡小提示條用（#home-announcement，
+   要在網址加 ?announcement=inline 才會顯示），平常不會被套用到。 */
+
+/* 精簡小提示條只留第一張圖：老闆從 FB 貼一整串圖時，這條不會變成圖片牆。
+   第二張以後整個拿掉；圖片原本自己佔一個 <p> 的話，空掉的 <p> 也一併清掉。
+   要看完整內容的人可以點下面那顆「看其他公告」到 /notices/。 */
+function keepFirstImage(html) {
+  let seen = false;
+  return String(html)
+    .replace(/<img\b[^>]*>/g, m => (seen ? '' : (seen = true, m)))
+    .replace(/<p>\s*<\/p>\s*/g, '');
+}
+
+/* 公告太高時的處理方式，後台可選。這是套在整段渲染後 HTML 上的通用高度限制，
+   不管太高的原因是文字多還是圖片多都適用，不是只有貼圖片才會觸發：
+   scroll = 內框滾動（預設，高度可控、內容不會消失，捲軸本身會提示「下面還有」）
+   clip   = 裁切不滾動（底部加漸層淡出提示還有內容）
+   full   = 完整顯示（不限高度，內容太長會把首頁撐長）
+   每則公告可以單獨指定；沒指定（或填 inherit）就跟隨「診所資料」裡的全域預設。 */
+const HEIGHT_MODES = ['scroll', 'clip', 'full'];
+const ANN_MODE_DEFAULT = HEIGHT_MODES.includes(SITE.announcementHeightMode) ? SITE.announcementHeightMode : 'scroll';
+function resolveMode(v) {
+  return HEIGHT_MODES.includes(v) ? v : ANN_MODE_DEFAULT;
+}
+
+/* 首頁公告條以前只做「行內」格式（不解析標題等區塊語法），所以打 # / ##### 會原字吐出來，
+   跟 /notices/ 公告頁（含標題、清單等完整區塊語法）長期不同步。
+   COMMIT 2 起兩邊共用 renderMarkdown()，在建置時解析好存成 bodyHtml，前端直接用。
+   bodyHtml 是完整版（跟 /notices/ 一模一樣），給預設顯示的 NOTICES 區塊用；
+   bodyHtmlCompact 才是裁過圖的精簡版，只給 ?announcement=inline 那條小提示條用。 */
+ann.items = ann.items.map(it => {
+  const full = renderMarkdown(String(it && it.body || ''));
+  return Object.assign({}, it, {
+    bodyHtml: full,
+    bodyHtmlCompact: keepFirstImage(full),
+    heightMode: resolveMode(it && it.heightMode)
+  });
+});
 fs.writeFileSync(path.join(DATA_DIR, 'announcements.json'), JSON.stringify(ann, null, 2));
 
 /* ---- content.js：首頁一次讀到所有內容（本機雙擊預覽也能動） ---- */
@@ -465,7 +462,7 @@ for (const a of articles) {
     '<div class="page show">\n  <section>\n    <div class="wrap article-page">\n' +
     '      <div class="cats">' + a.tags.map(t => '<span class="cat">' + esc(t) + '</span>').join('') + '</div>\n' +
     '      <h1>' + esc(a.title) + '</h1>\n' +
-    '      <div class="meta">' + esc(a.author) + '　·　建立日期：' + esc(a.date) + '</div>\n' +
+    '      <div class="meta">' + esc(a.author) + '　·建立日期：' + esc(a.date) + '</div>\n' +
     /* 封面圖：之前只在列表卡片出現，文章內頁沒有；內文已有同一張圖就不重複 */
     ((a.thumbnail && !a.html.includes(a.thumbnail))
       ? '      <figure class="article-cover"><img src="' + esc(safeUrl(a.thumbnail)) + '" alt="' + esc(a.title) + '"></figure>\n' : '') +
@@ -512,7 +509,7 @@ const noticeList = (ann.items || []).filter(i => i && i.show !== false);
     '        <span class="tag">公告</span>\n' +
     '        <div>\n' +
     '          <h3>' + esc(i.title) + '</h3>\n' +
-    '          <div class="notice-body">' + mdToHtml(String(i.body || '')) + '</div>\n' +
+    '          <div class="notice-body">' + renderMarkdown(String(i.body || '')) + '</div>\n' +
     '          <small>公告日期：' + esc(i.date) + '</small>\n' +
     '        </div>\n' +
     '      </div>'

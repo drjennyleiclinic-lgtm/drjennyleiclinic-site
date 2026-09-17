@@ -7,15 +7,15 @@
 <meta name="description" content="晨昕診所-中山內科診所｜糖尿病治療｜家醫科｜高血壓高血脂｜慢病體重管理｜身心科">
 <!--OG:START-->
 <!-- 以下由 build.js 自動產生，資料來自後台「診所資料」。手動修改會在下次部署被覆蓋。 -->
-<link rel="canonical" href="https://practicemoving.joyseeker9453.workers.dev/">
+<link rel="canonical" href="https://drjennyleiclinic.drjennyleiclinic.workers.dev/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="晨昕診所">
 <meta property="og:title" content="晨昕診所｜台北市中山區內科・糖尿病・慢病體重管理">
 <meta property="og:description" content="晨昕診所-中山內科診所｜糖尿病治療｜家醫科｜高血壓高血脂｜慢病體重管理｜身心科">
-<meta property="og:url" content="https://practicemoving.joyseeker9453.workers.dev/">
-<meta property="og:image" content="https://practicemoving.joyseeker9453.workers.dev/images/line-banner.png">
+<meta property="og:url" content="https://drjennyleiclinic.drjennyleiclinic.workers.dev/">
+<meta property="og:image" content="https://drjennyleiclinic.drjennyleiclinic.workers.dev/images/line-banner.png">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"MedicalClinic","name":"晨昕診所","url":"https://practicemoving.joyseeker9453.workers.dev/","description":"晨昕診所-中山內科診所｜糖尿病治療｜家醫科｜高血壓高血脂｜慢病體重管理｜身心科","telephone":"02-2518-1268","email":"99c7nd@gmail.com","image":"https://practicemoving.joyseeker9453.workers.dev/images/line-banner.png","logo":"https://practicemoving.joyseeker9453.workers.dev/images/logo.png","address":{"@type":"PostalAddress","addressCountry":"TW","addressRegion":"台北市","addressLocality":"中山區","streetAddress":"復興北路350號3樓"},"sameAs":["https://www.facebook.com/Dr.JennyLei","https://line.me/R/ti/p/@598wqthm"],"medicalSpecialty":["專業減重","糖尿病","高血壓","高血脂","代謝症候群","慢性處方籤","內科急慢性疾病","預防保健健檢"],"openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],"opens":"09:00","closes":"12:30"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"16:00","closes":"21:00"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"MedicalClinic","name":"晨昕診所","url":"https://drjennyleiclinic.drjennyleiclinic.workers.dev/","description":"晨昕診所-中山內科診所｜糖尿病治療｜家醫科｜高血壓高血脂｜慢病體重管理｜身心科","telephone":"02-2518-1268","email":"leiwengchi@gmail.com","image":"https://drjennyleiclinic.drjennyleiclinic.workers.dev/images/line-banner.png","logo":"https://drjennyleiclinic.drjennyleiclinic.workers.dev/images/logo.png","address":{"@type":"PostalAddress","addressCountry":"TW","addressRegion":"台北市","addressLocality":"中山區","streetAddress":"復興北路350號3樓"},"sameAs":["https://www.facebook.com/Dr.JennyLei","https://line.me/R/ti/p/@598wqthm"],"medicalSpecialty":["專業減重","糖尿病","高血壓","高血脂","代謝症候群","慢性處方籤","內科急慢性疾病","預防保健健檢"],"openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],"opens":"09:00","closes":"12:30"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"16:00","closes":"21:00"}]}</script>
 <!--OG:END-->
 <link rel="icon" type="image/png" href="images/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -145,12 +145,132 @@ header{position:sticky;top:0;z-index:50;background:rgba(251,250,247,.94);-webkit
 .notice .tag,.pinbar .tag{flex-shrink:0;background:var(--dawn);color:#fff;font-size:0.9375rem;font-weight:700;padding:0.1875rem 0.75rem;border-radius:0.875rem;margin-top:0.125rem}
 .pinbar .tag{margin-top:0}
 .home-announcement{margin:1rem auto 0;max-width:67.5rem;padding:.75rem 1rem;background:var(--dawn-soft);border:1px solid #ecd6ac;border-radius:.75rem;color:var(--pine-deep);line-height:1.55}
-.home-announcement[hidden]{display:none}.home-announcement .ha-title{font-weight:700;color:#9a6c1c;margin-right:.75rem}.home-announcement .ha-body{display:block;max-height:calc(1.55em * 12);overflow-y:auto;white-space:pre-wrap;padding-right:.35rem}
-@media(max-width:560px){.home-announcement{margin-left:1rem;margin-right:1rem;font-size:.875rem}.home-announcement .ha-body{max-height:calc(1.55em * 8)}}
+.home-announcement[hidden]{display:none}.home-announcement .ha-title{font-weight:700;color:#9a6c1c;margin-right:.75rem}
+/* 首頁公告條「內容太高時怎麼處理」三種模式，後台可選（見 build.js 的 heightMode）。
+   /notices/ 公告頁不受這裡影響，那邊永遠完整顯示。
+   .ha-wrap 只是為了讓 clip 模式的漸層淡出有地方掛，不影響版面。 */
+.home-announcement .ha-wrap{position:relative;display:block}
+.home-announcement .ha-body{display:block;padding-right:.35rem}
+/* scroll：內框滾動（預設）。桌機 12 行、手機 8 行，超過就出現捲軸 */
+.home-announcement .ha-wrap[data-mode="scroll"] .ha-body{max-height:calc(1.55em * 12);overflow-y:auto}
+/* clip：裁切不滾動。底部加漸層淡出，讓人知道下面還有東西 */
+.home-announcement .ha-wrap[data-mode="clip"] .ha-body{max-height:calc(1.55em * 12);overflow:hidden}
+.home-announcement .ha-wrap[data-mode="clip"][data-clipped]::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2.5em;pointer-events:none;background:linear-gradient(to bottom,rgba(253,246,233,0),var(--dawn-soft))}
+/* full：完整顯示，不限高度 */
+.home-announcement .ha-wrap[data-mode="full"] .ha-body{max-height:none;overflow:visible}
+/* COMMIT 2：公告條內容改由 marked 解析，會產生真的 <p>/<h2>~<h6>/<ul>/<ol> 等區塊標籤，
+   不再是純文字加 white-space:pre-wrap。這裡另外給一組較緊湊的間距，避免直接套用文章頁的大留白，
+   把公告條撐爆（原本 12 行／手機 8 行的捲軸高度維持不變）。 */
+.home-announcement .ha-body p{margin:0 0 .5em}
+.home-announcement .ha-body p:last-child{margin-bottom:0}
+.home-announcement .ha-body :is(h1,h2,h3,h4,h5,h6){font-family:var(--serif);color:var(--pine-deep);line-height:1.3;margin:.5em 0 .25em;font-weight:700;font-size:1.05em}
+.home-announcement .ha-body h6{color:var(--pine)}
+.home-announcement .ha-body ul,.home-announcement .ha-body ol{margin:0 0 .5em 1.25em}
+.home-announcement .ha-body li{margin-bottom:.2em}
+.home-announcement .ha-body blockquote{margin:0 0 .5em;padding:.5rem .75rem;border-left:3px solid var(--dawn);background:#fff;border-radius:0 .5rem .5rem 0}
+.home-announcement .ha-body blockquote p:last-child{margin-bottom:0}
+.home-announcement .ha-body hr{border:0;border-top:1px solid #ecd6ac;margin:.75rem 0}
+.home-announcement .ha-body code{background:#fff;padding:.1em .35em;border-radius:.25rem;font-size:.92em}
+.home-announcement .ha-body img{max-width:100%;height:auto;display:block;border-radius:.5rem;margin:.35em 0}
+@media(max-width:560px){.home-announcement{margin-left:1rem;margin-right:1rem;font-size:.875rem}
+  .home-announcement .ha-wrap[data-mode="scroll"] .ha-body,.home-announcement .ha-wrap[data-mode="clip"] .ha-body{max-height:calc(1.55em * 8)}}
 .announcement-module{min-height:calc(100svh - var(--hdr));display:flex;align-items:center;background:var(--dawn-soft)}
 #page-home > .announcement-module{min-height:calc(100svh - var(--hdr))}
 .announcement-module .wrap{width:min(100% - 2rem,67.5rem)}
-.announcement-module .home-announcement{margin:1.5rem auto 0;background:#fff}
+/* 電腦版留白跟著螢幕高度連續縮放（步驟 1）。
+   矮螢幕上，純裝飾的留白會吃掉大半預算（量過 460px 視窗：固定開銷 463px 已經超過
+   407px 的預算，其中 188px、約 46% 是純留白），內文因此被壓成一條縫。
+   優先順序應該是「先犧牲裝飾、再犧牲內容」，所以這些留白改用 clamp 綁 svh：
+   高螢幕維持原本的數值完全不變，矮螢幕自動收緊，而且是連續的，不是用斷點硬切。 */
+@media(min-width:861px){
+  .announcement-module{padding-top:clamp(1.5rem,6svh,4.5rem);padding-bottom:clamp(1.5rem,6svh,4.5rem)}
+  .announcement-module .sec-head{margin-bottom:clamp(1rem,4svh,2.75rem)}
+  #notices-announcement.home-announcement{margin-top:clamp(.75rem,2svh,1.5rem)}
+  .announcement-module .wrap > p{margin-top:clamp(.75rem,2svh,1.25rem)}
+  /* 桌機的保底上限：8 行（行高 1.75 的整數倍，裁切剛好落在整行邊界）。
+     螢幕夠高時會在下面被解除、改用剩餘空間計算。
+     刻意寫成「預設有上限、夠高才解除」而不是用 max-height:699px 另外開一條規則：
+     視窗高度可能是小數（例如 699.5），兩條規則會同時落空、變成完全沒有上限。 */
+  .home-notice-wrap[data-mode="scroll"] .notice-body,
+  .home-notice-wrap[data-mode="clip"] .notice-body{max-height:calc(1.75em * 8)}
+}
+/* 電腦版且螢幕夠高（700px 以上）：「太長」的定義＝「一個螢幕裝不下」，不是固定行數。
+   區塊上下都鎖在一個螢幕高（min-height = max-height），裡面改直向 flex 排版，
+   公告內文是唯一可被壓縮的部分：塞得下就完整顯示，塞不下才出現內框捲軸。
+   螢幕多高、區塊留白多少、標題折幾行、日期佔幾行，全部由瀏覽器即時算，不用猜行數。
+   （全域是 box-sizing:border-box，max-height 已含區塊自己的上下留白，不必手動扣。）
+   heightMode=full 時把上限整個拿掉，恢復成「內容多長、首頁就被拉多長」。
+   justify-content 寫兩次是保險：舊瀏覽器不認得 safe 就退回上面那行。
+   為什麼只在 861px 以上：這個站本來就有「手機不強制滿版、區塊照自然高度排」的設計
+   （見上面 @media(max-width:860px) 的 #page-home > section 規則，區塊在那邊是 display:block
+   且不滿版），沒有「一個螢幕」可言，剩餘空間也就無從算起。
+   為什麼還要限定 700px 以上（步驟 2、3）：一個螢幕的預算再怎麼分配都有下限，
+   低於 6 行的內文已經不是摘要而是一條縫，沒有閱讀價值。螢幕矮到連這個下限都給不起時，
+   就該放棄「一個螢幕」這個原則（見下面 max-height:699px 的規則），
+   而不是繼續壓縮內容。這裡不能改用 min-height 擋，因為 flex 項目撐不下去時
+   會直接溢出區塊、蓋到下一個區塊上，只能整組換掉。 */
+@media(min-width:861px) and (min-height:700px){
+  /* 解除上面的行數保底，改由 flex 即時算剩餘空間 */
+  .home-notice-wrap[data-mode="scroll"] .notice-body,
+  .home-notice-wrap[data-mode="clip"] .notice-body{max-height:none}
+  .announcement-module{max-height:calc(100svh - var(--hdr));flex-direction:column;align-items:normal;justify-content:center;justify-content:safe center}
+  .announcement-module[data-mode="full"]{max-height:none}
+  .announcement-module .wrap{display:flex;flex-direction:column;min-height:0}
+  .announcement-module .sec-head,.announcement-module .wrap > p{flex:0 0 auto}
+  /* 由上到下每一層都要能收縮（flex:0 1 auto + min-height:0），
+     內框捲軸才會落在內文那一層，而不是把整張卡片擠破。 */
+  #notices-announcement.home-announcement{display:flex;flex-direction:column;flex:0 1 auto;min-height:0;align-self:stretch}
+  #notices-announcement .notice{flex:0 1 auto;min-height:0;align-items:stretch}
+  /* .notice 是橫向 flex，橫向 flex 項目的「高度」不吃 flex-shrink，只看 align-items。
+     維持預設的 flex-start 的話，文字欄高度永遠等於內容原始高度，高度限制傳不進去，
+     內容會直接溢出卡片（量過：478px 的區塊裡內文還是 922px，日期整個被擠到畫面外）。
+     改成 stretch 讓文字欄高度跟著被限制住的卡片，限制才會一路傳到內文那層。
+     標籤要單獨拉回 flex-start，否則它會被拉成整張卡片一樣高。 */
+  #notices-announcement .notice > .tag{align-self:flex-start}
+  #notices-announcement .notice > div{display:flex;flex-direction:column;min-height:0}
+  #notices-announcement .notice h3,#notices-announcement .notice small{flex:0 0 auto}
+  #notices-announcement .home-notice-wrap{flex:0 1 auto;min-height:0;display:flex;flex-direction:column}
+}
+/* 手機／平板（860px 以下）：區塊本來就不滿版，暫時沿用原本的行數上限。
+   這是已知的過渡作法——行數會因為螢幕窄、文字折行而失準，之後改成「等比例縮小」時一起換掉。 */
+@media(max-width:860px){
+  .home-notice-wrap[data-mode="scroll"] .notice-body{max-height:calc(1.55em * 12)}
+  /* clip 的高度用行高（body 是 1.75）的整數倍，裁切才會落在整行邊界上。
+     原本寫 1.55em 跟行高不成整數倍，實際只有 10.6 行／7.07 行，會把下一行的頂端
+     露出一小截（量過手機是 198px ÷ 28px = 7.07 行）。
+     scroll 刻意維持 1.55em 不動：手機的捲軸平常不會顯示，露出半行才是「下面還有」的提示，
+     切齊反而會讓人以為內容就到這裡。 */
+  .home-notice-wrap[data-mode="clip"] .notice-body{max-height:calc(1.75em * 12)}
+}
+@media(max-width:560px){
+  .home-notice-wrap[data-mode="scroll"] .notice-body{max-height:calc(1.55em * 8)}
+  .home-notice-wrap[data-mode="clip"] .notice-body{max-height:calc(1.75em * 8)}
+}
+/* #notices-announcement 只借用 .home-announcement 做 [hidden] 開關，視覺盒身在這裡整個重設掉，
+   改用跟 /notices/ 公告頁完全相同的 .notice / .tag / h3 / .notice-body 樣式渲染，
+   兩邊才會長得一模一樣；太高時另外用 .home-notice-wrap 包 .notice-body 做內框滾動，
+   不影響 /notices/ 頁本身（那邊永遠完整顯示，不限高度）。 */
+/* 左右 margin 一定要是 0 不能是 auto：電腦版 .wrap 是 flex 容器，flex 項目的 auto margin
+   會吸掉左右剩餘空間，而且依規範它的優先權高於 align-self:stretch，
+   結果就是卡片縮成內容寬度（量過：916px 的容器裡只剩 281px）。
+   寬度改由 align-self:stretch 撐滿，.wrap 本身已經有置中與最大寬度，不需要這裡再置中。 */
+/* line-height 要用 inherit 不能用 normal：.home-announcement 自己帶 1.55，
+   直接寫 normal 會變成約 24px，比公告頁的 28px 緊一行，兩邊文字疏密就不一樣了。
+   inherit 會拿到跟 /notices/ 頁同一個來源（body 的行高），這樣才真的一致。 */
+#notices-announcement.home-announcement{margin:1.5rem 0 0;padding:0;background:none;border:0;line-height:inherit}
+/* 文字欄填滿剩餘寬度。.notice 是橫向 flex，這一欄原本沒設 flex-grow，寬度是「內容自己多寬就多寬」，
+   短行的公告只會用掉可用寬度的一小部分（量過：可用 704px 時實際只用 136~166px），
+   手機上等於白白浪費寬度、多折好幾行。min-width:0 是讓長字串和圖片能正常收縮，不會撐破卡片。
+   /notices/ 公告頁用同一個 .notice 樣板，所以兩邊一起修正。 */
+.notice > div{flex:1 1 auto;min-width:0}
+.home-notice-wrap{position:relative;display:block}
+.home-notice-wrap[data-mode="scroll"] .notice-body{min-height:0;overflow-y:auto}
+.home-notice-wrap[data-mode="clip"] .notice-body{min-height:0;overflow:hidden}
+.home-notice-wrap[data-mode="clip"][data-clipped]::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2.5em;pointer-events:none;background:linear-gradient(to bottom,rgba(253,246,233,0),var(--dawn-soft))}
+.home-notice-wrap[data-mode="full"] .notice-body{overflow:visible}
+/* 手機版內文字級跟 /notices/ 公告頁對齊：舊的 .home-announcement 手機規則會把字縮成 .875rem，
+   讓首頁比公告頁小一號，違反「兩邊渲染一樣」。 */
+@media(max-width:560px){#notices-announcement.home-announcement{font-size:1rem}}
 .notice h3{font-size:1rem;color:var(--pine-deep)}
 .notice small{color:var(--ink-soft)}
 
@@ -385,7 +505,10 @@ footer a{color:#e8efe9}
 .fab-line:hover{transform:translateY(-0.1875rem);box-shadow:0 0.75rem 1.875rem rgba(6,199,85,.55)}
 .fab-line svg{width:2.125rem;height:2.125rem;fill:#fff}
 @media(min-width:1024px){.fab-line{width:5.625rem;height:5.625rem;right:1.75rem;bottom:1.75rem}.fab-line svg{width:3.1875rem;height:3.1875rem}}   /* 電腦版放大 1.5 倍 */
-@media(max-width:480px){.fab-line{width:3.375rem;height:3.375rem;right:1rem;bottom:1rem}.fab-line svg{width:1.875rem;height:1.875rem}}
+/* 手機版按鈕放大 1.2 倍（4.05rem=64.8px、2.25rem=36px）：首頁綠色橫幅寫著
+   「點擊右下角LINE圖示加好友」，原本的 54px 對這個引導來說不夠顯眼。
+   放大後佔螢幕寬約 17%，右下角仍留有餘裕，不會壓到公告卡片。 */
+@media(max-width:480px){.fab-line{width:4.05rem;height:4.05rem;right:1rem;bottom:1rem}.fab-line svg{width:2.25rem;height:2.25rem}}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .loading{text-align:center;color:var(--ink-soft);padding:2.5rem 0;grid-column:1/-1}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
@@ -512,8 +635,10 @@ footer a{color:#e8efe9}
   .hero-top{padding-top:12px}
 }
 @media(min-width:861px) and (max-width:1280px) and (max-height:700px){
-  #fab-line{width:56px;height:56px;right:12px;bottom:16px}
-  #fab-line svg{width:32px;height:32px}
+  /* 矮螢幕時縮小，但不要縮太多：原本 56px／32px 跟一般情況的 90px／51px 落差太大，
+     看起來像壞掉。改成 72px／40px，仍然比 90px 省空間，視覺上又不會突兀。 */
+  #fab-line{width:72px;height:72px;right:12px;bottom:16px}
+  #fab-line svg{width:40px;height:40px}
   #hours .hours-note{max-width:calc(100% - 128px);margin-left:auto;margin-right:auto}
 }
 </style>
@@ -1006,9 +1131,34 @@ function renderPinned(items){
   const sorted = [...list].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   const i = sorted[0];
   el.hidden = false;
-  /* bodyHtml 是 build.js 解析並跳脫過的行內 HTML；舊資料沒有這個欄位時退回純文字 */
-  const body = i.bodyHtml != null ? i.bodyHtml : esc(i.body || '');
-  el.innerHTML = `<span class="ha-title">最新公告｜${esc(i.title)}</span><span class="ha-body">${body}</span>`;
+  /* bodyHtml 是 build.js 用 marked 解析並用 sanitize-html 洗過的完整版 HTML（含標題/清單等區塊標籤），
+     跟 /notices/ 頁一模一樣；舊資料沒有這個欄位時退回純文字。
+     bodyHtmlCompact 才是裁過圖的精簡版，只給 ?announcement=inline 那條小提示條用。
+     heightMode 是後台選的「內容太高時怎麼處理」，build.js 已經把「跟隨預設」解析成實際值。
+     NOTICES 區塊（預設顯示的 el）用完整版，且整段 markup（.notice/.tag/h3/.notice-body/公告日期）
+     直接照抄 /notices/ 頁的樣板，兩邊才會渲染成一模一樣，只差在太高時用 .home-notice-wrap
+     框住 .notice-body 做內框滾動；/notices/ 頁本身沒有這層限制。 */
+  const full = i.bodyHtml != null ? i.bodyHtml : esc(i.body || '');
+  const body = inline ? (i.bodyHtmlCompact != null ? i.bodyHtmlCompact : full) : full;
+  const mode = ['scroll', 'clip', 'full'].includes(i.heightMode) ? i.heightMode : 'scroll';
+  /* 高度上限鎖在區塊層級（見 .announcement-module 的 max-height），
+     所以模式也要掛到區塊上，full 才有辦法把上限整個解除。 */
+  if (module) module.dataset.mode = mode;
+  el.innerHTML = inline
+    ? `<span class="ha-title">最新公告｜${esc(i.title)}</span><div class="ha-wrap" data-mode="${mode}"><div class="ha-body">${body}</div></div>`
+    : `<div class="notice"><span class="tag">公告</span><div><h3>${esc(i.title)}</h3>` +
+      `<div class="home-notice-wrap" data-mode="${mode}"><div class="notice-body">${body}</div></div>` +
+      `<small>公告日期：${esc(i.date)}</small></div></div>`;
+  /* clip 模式的漸層淡出只在「內容真的被裁掉」時才出現，
+     否則短公告底部會莫名其妙有一層陰影。圖片載入後高度會變，所以載完再量一次。 */
+  if (mode === 'clip') {
+    const wrap = el.querySelector('.ha-wrap, .home-notice-wrap');
+    const bodyEl = el.querySelector('.ha-body, .notice-body');
+    const mark = () => wrap.toggleAttribute('data-clipped', bodyEl.scrollHeight > bodyEl.clientHeight + 1);
+    mark();
+    el.querySelectorAll('.ha-body img, .notice-body img').forEach(img => { if (!img.complete) img.addEventListener('load', mark, { once: true }); });
+    window.addEventListener('resize', mark);
+  }
 }
 
 /* 相容處理：舊資料是單一 category 字串，新資料是 tags 陣列，統一成陣列 */
@@ -1025,7 +1175,7 @@ function cardHTML(a){
     <div class="cats">${tags.map(t=>`<span class="cat">${esc(t)}</span>`).join('')}</div>
     <h3>${esc(a.title)}</h3>
     <p>${esc(a.excerpt)}</p>
-    <div class="meta">${esc(a.author)}　·　${esc(a.date)}</div>
+    <div class="meta">${esc(a.author)}　·${esc(a.date)}</div>
   </div>`;
 }
 
@@ -1079,7 +1229,7 @@ function renderArticle(slug){
   $('article-box').innerHTML = `
     <div class="cats">${tagsOf(a).map(t=>`<span class="cat">${esc(t)}</span>`).join('')}</div>
     <h1>${esc(a.title)}</h1>
-    <div class="meta">${esc(a.author)}　·　建立日期：${esc(a.date)}</div>
+    <div class="meta">${esc(a.author)}　·建立日期：${esc(a.date)}</div>
     ${coverHTML(a)}
     <div class="article-body">${a.html}</div>
     <div class="share">
