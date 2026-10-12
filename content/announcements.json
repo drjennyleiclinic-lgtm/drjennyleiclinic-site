@@ -4,8 +4,8 @@
       "title": "2026雙十連假休診時間",
       "date": "2026-10-02",
       "body": "**10/09 週五休診**\n\n**10/10 週六休診**\n\n10/12 週一正常開診",
-      "show": true,
-      "pinned": true,
+      "show": false,
+      "pinned": false,
       "heightMode": "inherit"
     },
     {
