@@ -138,6 +138,17 @@ section{padding:4.5rem 0}
 .notice .date{display:block;margin-top:0.35rem;font-size:0.8125rem;color:#9a7a45;white-space:normal}
 .notice[hidden]{display:none}
 .hero .notice{margin-bottom:1.75rem}
+/* several notices: slide one at a time (dots, swipe, auto-advance), same idea as the Chinese site.
+   The track stretches every slide to the tallest one, so the box height does not jump. */
+.notice.is-car{display:block;position:relative;padding-left:0;padding-right:0}
+.nc-viewport{overflow:hidden}
+.nc-track{display:flex;transition:transform .45s ease}
+.nc-slide{flex:0 0 100%;min-width:0;display:flex;gap:0.75rem;align-items:flex-start;padding:0 1.1rem 1.1rem;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.nc-dots{position:absolute;right:0.6rem;bottom:0.35rem;display:flex;gap:0.15rem}
+.nc-dots button{width:1.5rem;height:1.5rem;padding:0;border:0;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.nc-dots button::before{content:"";width:0.5rem;height:0.5rem;border-radius:50%;background:#8a5a14;opacity:.25;transition:.2s}
+.nc-dots button.on::before{opacity:.85;transform:scale(1.25)}
+@media(prefers-reduced-motion:reduce){.nc-track{transition:none}}
 .note{max-width:36rem;margin:1rem auto 0;font-size:0.9375rem;color:var(--ink-soft);text-align:center}
 
 /* team */
@@ -401,20 +412,46 @@ document.addEventListener('click',e=>{document.querySelectorAll('details.lang[op
 })();
 
 /* Notice: admin → 外文版公告（停診、疫苗等） (content/en-notice.json).
-   Shown only when switched on and not past its end date (Taiwan time). */
+   Several notices can be added. Each one shows only when switched on and not past its
+   end date (Taiwan time). Newest first. One notice = a plain box; two or more = a slider
+   with dots, swipe, and auto-advance every 6 s (paused while hovered or touched). */
 (function(){
-  fetch('/content/en-notice.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(n=>{
-    if(!n||!n.show)return;
-    const msg=String(n.en||'').trim(); if(!msg)return;
-    if(n.until){const today=new Date(Date.now()+8*3600e3).toISOString().slice(0,10);if(today>String(n.until).slice(0,10))return;}
-    const M=['January','February','March','April','May','June','July','August','September','October','November','December'];
-    const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(n.date||''));
-    const posted=m?M[+m[2]-1]+' '+(+m[3])+', '+m[1]:'';
+  const M=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  fetch('/content/en-notice.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{
+    if(!d)return;
+    /* old format (a single notice, before the list) still works */
+    const raw=Array.isArray(d.items)?d.items:[d];
+    const today=new Date(Date.now()+8*3600e3).toISOString().slice(0,10);
+    const list=raw.filter(n=>n&&n.show&&String(n.en||'').trim()&&!(n.until&&today>String(n.until).slice(0,10)))
+      .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+    if(!list.length)return;
+    const posted=n=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(n.date||''));return m?'Posted '+M[+m[2]-1]+' '+(+m[3])+', '+m[1]:''};
+    const inner=n=>{const p=posted(n);return '<b>Notice</b><div><span class="msg">'+esc(String(n.en).trim())+'</span>'+(p?'<span class="date">'+p+'</span>':'')+'</div>'};
     document.querySelectorAll('[data-notice]').forEach(el=>{
-      el.innerHTML='<b>Notice</b><div><span class="msg"></span>'+(posted?'<span class="date"></span>':'')+'</div>';
-      el.querySelector('.msg').textContent=msg;
-      if(posted)el.querySelector('.date').textContent='Posted '+posted;
-      el.hidden=false;});
+      if(list.length===1){el.innerHTML=inner(list[0]);el.hidden=false;return;}
+      el.classList.add('is-car');
+      el.innerHTML='<div class="nc-viewport"><div class="nc-track">'+list.map(n=>'<div class="nc-slide">'+inner(n)+'</div>').join('')+'</div></div>'+
+        '<div class="nc-dots">'+list.map((n,i)=>'<button type="button" aria-label="Notice '+(i+1)+' of '+list.length+'"'+(i?'':' class="on"')+'></button>').join('')+'</div>';
+      el.hidden=false;
+      const track=el.querySelector('.nc-track'),dots=[...el.querySelectorAll('.nc-dots button')],count=list.length;
+      const reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+      let idx=0,timer=null,held=false,x0=null,y0=null;
+      const go=k=>{idx=(k+count)%count;track.style.transform='translateX(-'+(idx*100)+'%)';dots.forEach((b,j)=>b.classList.toggle('on',j===idx));};
+      const stop=()=>{if(timer){clearInterval(timer);timer=null;}};
+      const play=()=>{stop();if(!reduce&&!held)timer=setInterval(()=>go(idx+1),6000);};
+      dots.forEach((b,j)=>b.addEventListener('click',()=>{go(j);play();}));
+      el.addEventListener('mouseenter',()=>{held=true;stop();});
+      el.addEventListener('mouseleave',()=>{held=false;play();});
+      /* swipe: must move more than 40px sideways and more sideways than up/down,
+         so scrolling the page does not change the notice by accident */
+      const vp=el.querySelector('.nc-viewport');
+      vp.addEventListener('pointerdown',e=>{x0=e.clientX;y0=e.clientY;held=true;stop();});
+      vp.addEventListener('pointerup',e=>{if(x0!==null){const dx=e.clientX-x0,dy=e.clientY-y0;if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy))go(idx+(dx<0?1:-1));}x0=null;held=false;play();});
+      vp.addEventListener('pointercancel',()=>{x0=null;held=false;play();});
+      if('IntersectionObserver' in window)new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting?play():stop()),{threshold:0.2}).observe(el);
+      else play();
+    });
   }).catch(()=>{});
 })();
 </script>
