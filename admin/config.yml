@@ -74,15 +74,21 @@ collections:
         label: "外文版公告（停診、疫苗等）"
         file: "content/en-notice.json"
         fields:
-          - { label: "顯示", name: "show", widget: "boolean", default: false, hint: "打開才會出現在英文版網站。沒有公告時關掉即可，文字保留不用刪" }
-          - { label: "公告日期", name: "date", widget: "datetime", required: false,
-              format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false,
-              hint: "點一下跳出日曆，預設是今天。網站上會顯示成 Posted September 23, 2026" }
-          - { label: "英文內容", name: "en", widget: "text", required: false,
-              hint: "照範本改日期就好：The clinic will be closed on Saturday, October 24. ／ 只停上午：Closed on the morning of Monday, November 2. ／ 連假：Closed from February 14 to February 18 for Lunar New Year. ／ 疫苗：Flu vaccines are now available. Please bring your NHI card." }
-          - { label: "顯示到哪一天", name: "until", widget: "datetime", required: false,
-              format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false,
-              hint: "填公告的最後一天（例如停診最後一天、疫苗打完那天），過了這天會自動消失，不用記得回來關。留空＝一直顯示直到手動關掉" }
+          - label: "外文版公告"
+            name: "items"
+            widget: "list"
+            summary: "{{fields.date}}｜{{fields.en}}"
+            hint: "可以新增多則。英文網站上會由新到舊排列：只有一則就固定顯示；兩則以上會像中文版首頁一樣自動輪播，可點圓點或左右滑動切換。"
+            fields:
+              - { label: "顯示", name: "show", widget: "boolean", default: true, hint: "打開才會出現在英文版網站。不需要時關掉即可，文字保留不用刪" }
+              - { label: "公告日期", name: "date", widget: "datetime", required: false,
+                  format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false,
+                  hint: "點一下跳出日曆，預設是今天。網站上會顯示成 Posted October 22, 2026，也用來決定排列順序（新的在前）" }
+              - { label: "英文內容", name: "en", widget: "text", required: false,
+                  hint: "照範本改日期就好：The clinic will be closed on Saturday, October 24. ／ 只停上午：Closed on the morning of Monday, November 2. ／ 連假：Closed from February 14 to February 18 for Lunar New Year. ／ 疫苗：Flu vaccines are now available. Please bring your NHI card." }
+              - { label: "顯示到哪一天", name: "until", widget: "datetime", required: false,
+                  format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false,
+                  hint: "填公告的最後一天（例如停診最後一天、疫苗打完那天），過了這天會自動消失，不用記得回來關。留空＝一直顯示直到手動關掉" }
 
   # ---------- 關於晨昕背景圖 ----------
   - name: "about"
