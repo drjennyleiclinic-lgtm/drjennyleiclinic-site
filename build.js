@@ -83,7 +83,8 @@ function parseFrontmatter(raw) {
   let curKey = null;
   const unquote = s => s.trim().replace(/^["']|["']$/g, '');
 
-  for (const line of lines) {
+for (let n = 0; n < lines.length; n++) {
+   const line = lines[n];
     if (!line.trim()) continue;
     const li = line.match(/^\s*-\s+(.*)$/);
     if (li && curKey) {
@@ -96,6 +97,19 @@ function parseFrontmatter(raw) {
     const key = line.slice(0, i).trim();
     let val = unquote(line.slice(i + 1));
     if (val === '') { curKey = key; meta[key] = ''; continue; }
+       /* YAML 多行文字（| 、|- 、> 、>-）：後台「摘要」欄位按了 Enter 換行時，
+          Sveltia 會存成這種格式。把底下縮排的行收集起來當作值。 */
+       const block = val.match(/^([|>])([+-]?)\d*$/);
+       if (block) {
+         const buf = [];
+         while (n + 1 < lines.length && (/^\s+\S/.test(lines[n + 1]) || !lines[n + 1].trim())) {
+           buf.push(lines[++n].trim());
+         }
+         while (buf.length && buf[buf.length - 1] === '') buf.pop();
+         meta[key] = block[1] === '|' ? buf.join('\n') : buf.join(' ').replace(/\s+/g, ' ');
+         curKey = null;
+         continue;
+       }   
     curKey = null;
     if (val === 'true') val = true;
     else if (val === 'false') val = false;
