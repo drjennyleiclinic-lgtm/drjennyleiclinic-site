@@ -726,6 +726,8 @@ const today = new Date().toISOString().slice(0, 10);
 const urls = [{ loc: BASE + '/', pri: '1.0', mod: today },
   { loc: BASE + '/team/', pri: '0.8', mod: today },
   { loc: BASE + '/notices/', pri: '0.7', mod: (noticeList[0] && noticeList[0].date) || today }].concat(
+  LANG_LIST.filter(l => l.href !== '/' && (!l.key || LANG_SW[l.key + 'Page'] !== false))
+           .map(l => ({ loc: BASE + l.href, pri: '0.6', mod: today })),
   articles.map(a => ({ loc: BASE + '/article/' + encodeURIComponent(a.slug) + '/', pri: '0.8', mod: a.date || today }))
 );
 fs.writeFileSync(path.join(ROOT, 'sitemap.xml'),
