@@ -441,9 +441,14 @@ function langMenuHtml(current) {
       esc(l.label) + '</a>').join('') +
     '</div></details>';
 }
+/* hreflang 的網址必須是完整網址（https://網域/路徑），寫成 /en/indexen 這種相對網址 Google 會忽略。
+   x-default＝不屬於上面任何語言的訪客，導到中文首頁。 */
 function hreflangHtml() {
-  return LANG_LIST.filter(langPageOn).map(l =>
-    '<link rel="alternate" hreflang="' + esc(l.lang) + '" href="' + esc(l.href) + '">').join('\n');
+  const on = LANG_LIST.filter(langPageOn);
+  const zh = on.find(l => l.href === '/');
+  return on.map(l =>
+    '<link rel="alternate" hreflang="' + esc(l.lang) + '" href="' + esc(absUrl(l.href)) + '">').join('\n') +
+    (zh ? '\n<link rel="alternate" hreflang="x-default" href="' + esc(absUrl(zh.href)) + '">' : '');
 }
 /* 把 <!--NAME:START--> 和 <!--NAME:END--> 中間換成新內容；沒有標記就原樣回傳 */
 function fillMarker(html, name, content) {
@@ -457,7 +462,10 @@ function fillMarker(html, name, content) {
     if (!fs.existsSync(f)) { console.warn('! 語言清單裡的 ' + l.file + ' 找不到，跳過'); return; }
     const html = fs.readFileSync(f, 'utf8');
     if (!html.includes('<!--LANG-MENU:START-->')) console.warn('! ' + l.file + ' 沒有 LANG-MENU 標記，選單不會更新');
-    const out = fillMarker(fillMarker(html, 'LANG-MENU', langMenuHtml(l.lang)), 'HREFLANG', '\n' + hreflangHtml() + '\n');
+    /* 外文頁原本沒有 canonical，跟 hreflang 放在同一個標記區塊裡一起產生。
+       中文首頁的 canonical 在 OG 區塊（injectHomeHead），這裡不重複。 */
+    const canon = l.href === '/' ? '' : '\n<link rel="canonical" href="' + esc(absUrl(l.href)) + '">';
+    const out = fillMarker(fillMarker(html, 'LANG-MENU', langMenuHtml(l.lang)), 'HREFLANG', '\n' + hreflangHtml() + canon + '\n');
     if (out !== html) fs.writeFileSync(f, out);
   });
   /* 短網址：/kr、/kr/ → /kr/indexkr。先拿掉指向清單網址的舊規則，其他手寫規則保留 */
@@ -471,6 +479,84 @@ function fillMarker(html, name, content) {
   });
   fs.writeFileSync(RED, keep.concat(gen).join('\n') + '\n');
   console.log('✓ 語言選單已更新：' + LANG_LIST.filter(langMenuOn).map(l => l.label).join('、'));
+})();
+
+/* ============================================================
+   首頁內文：部署時直接寫進 index.html（SEO 用）
+   ------------------------------------------------------------
+   首頁的服務項目、門診時間、醫師、文章、聯絡資訊原本全靠 JavaScript 載入後才填上，
+   原始網頁裡是空的（文章區只有「載入中…」），文章卡片也只有 onclick、沒有連結，
+   Google 從首頁找不到任何一篇文章。
+   這裡用跟首頁 JavaScript（index.html 的 initStatic() / cardHTML()）一模一樣的 HTML
+   先填進 <!--XXX:START--> ~ <!--XXX:END--> 標記之間；網頁載入後 JavaScript 照舊重畫一次，
+   訪客看到的畫面不變。
+   ⚠ 改了 index.html 裡那幾個函式的 HTML，這裡也要一起改，兩邊才會一致。
+   ============================================================ */
+const HOME_FILE = path.join(ROOT, 'index.html');
+/* 服務項目圖示與醫師照片佔位圖只維護在 index.html 一份，這裡直接從裡面讀出來 */
+const SVC_ICONS = (() => {
+  const src = fs.readFileSync(HOME_FILE, 'utf8');
+  const block = src.match(/const SVC_ICONS = \{([\s\S]*?)\n\};/);
+  const out = {};
+  if (block) for (const m of block[1].matchAll(/"([^"]+)":\s*`([^`]*)`/g)) out[m[1]] = m[2];
+  else console.warn('! index.html 找不到 SVC_ICONS，首頁服務項目先不帶圖示（載入後 JavaScript 會補上）');
+  return out;
+})();
+const DOC_PH = (() => {
+  const m = fs.readFileSync(HOME_FILE, 'utf8').match(/const DOC_PLACEHOLDER =\s*`([^`]*)`/);
+  return m ? m[1] : '<div class="photo-ph" role="img" aria-label="未提供照片"><span>未提供照片</span></div>';
+})();
+function hoursDays(r) {
+  if (Array.isArray(r.days)) return r.days.slice(0, 7);
+  return [r.mon, r.tue, r.wed, r.thu, r.fri, r.sat, r.sun]
+    .map(x => (x == null || String(x).trim() === '') ? '休診' : String(x).trim());
+}
+function cardHtml(a) {
+  return '<a class="card" href="/article/' + encodeURIComponent(a.slug) + '/" data-slug="' + esc(a.slug) + '" onclick="return openCard(event,this)">' +
+    (a.thumbnail ? '<img class="thumb" src="' + esc(a.thumbnail) + '" alt="" loading="lazy">' : '') +
+    '<div class="cats">' + a.tags.map(t => '<span class="cat">' + esc(t) + '</span>').join('') + '</div>' +
+    '<h3>' + esc(a.title) + '</h3>' +
+    '<p>' + esc(a.excerpt) + '</p>' +
+    '<div class="meta">' + esc(a.author) + '　·' + esc(a.date) + '</div>' +
+    '</a>';
+}
+(function injectHomeBody() {
+  let html = fs.readFileSync(HOME_FILE, 'utf8');
+  const need = ['SVC', 'HOURS', 'HOURS-NOTE', 'HOURS-EXTRA', 'TEAM', 'HOME-ARTICLES', 'NEWS-GRID', 'CONTACT', 'F-ADDR'];
+  const missing = need.filter(n => !html.includes('<!--' + n + ':START-->'));
+  if (missing.length) console.warn('! index.html 少了這些標記，那幾區不會預先填入：' + missing.join('、'));
+
+  const services = Array.isArray(SITE.services) ? SITE.services : [];
+  html = fillMarker(html, 'SVC', services.map(s =>
+    '<div class="svc"><div class="icon">' + (SVC_ICONS[s && s.name] || '') + '</div><h3>' + esc(s && s.name) + '</h3></div>').join(''));
+
+  const hours = SITE.hours || {};
+  html = fillMarker(html, 'HOURS', (Array.isArray(hours.rows) ? hours.rows : []).map(r =>
+    '<tr><td class="slot">' + esc(r.slot) + '<br><small>' + esc(r.time) + '</small></td>' +
+    hoursDays(r).map(d => '<td class="' + (d === '休診' ? 'off' : '') + '">' + esc(d) + '</td>').join('') + '</tr>').join(''));
+  html = fillMarker(html, 'HOURS-NOTE', esc((hours.note || '') + (hours.updated ? '（班表更新於 ' + hours.updated + '）' : '')));
+  html = fillMarker(html, 'HOURS-EXTRA', esc(hours.extra || ''));
+
+  const team = (Array.isArray(SITE.team) ? SITE.team : []).slice(0, 2);
+  html = fillMarker(html, 'TEAM', team.map(t =>
+    '<div class="doc">' +
+    (t.photo ? '<img class="photo" src="' + esc(t.photo) + '" alt="' + esc(t.name) + esc(t.title) + '" loading="lazy">' : DOC_PH) +
+    '<div class="doc-body"><h3>' + esc(t.name) + '</h3><div class="role">' + esc(t.title) + '</div>' +
+    '<ul>' + (Array.isArray(t.creds) ? t.creds : []).filter(Boolean).map(c => '<li>' + esc(c) + '</li>').join('') + '</ul>' +
+    '</div></div>').join(''));
+
+  html = fillMarker(html, 'HOME-ARTICLES', articles.slice(0, 2).map(cardHtml).join('') || '<p class="loading">目前沒有文章。</p>');
+  html = fillMarker(html, 'NEWS-GRID', articles.map(cardHtml).join('') || '<p class="loading">目前沒有文章。</p>');
+
+  html = fillMarker(html, 'CONTACT', '\n          <h3>' + esc(SITE.name) + '</h3>\n' +
+    '          <p><strong>地址：</strong><span id="c-addr">' + esc(SITE.address) + '</span></p>\n' +
+    '          <p><strong>電話：</strong><a id="c-phone" href="tel:' + esc(SITE.phoneLink) + '">' + esc(SITE.phone) + '</a></p>\n' +
+    '          <p><strong>Email：</strong><span id="c-mail">' + esc(SITE.email) + '</span></p>\n        ');
+  html = fillMarker(html, 'F-ADDR', esc(SITE.address));
+
+  fs.writeFileSync(HOME_FILE, html);
+  console.log('✓ 首頁內文已預先寫入：服務 ' + services.length + ' 項、門診 ' + ((hours.rows || []).length) +
+    ' 時段、醫師 ' + team.length + ' 位、文章連結 ' + articles.length + ' 篇');
 })();
 
 function headerHtml() {
@@ -723,12 +809,17 @@ const REMOVED_PAGE = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="
 
 /* ---------- sitemap.xml ---------- */
 const today = new Date().toISOString().slice(0, 10);
+/* sitemap 的日期只接受 2026-09-23 這種格式；舊公告有打成 2026/09/23 的，統一轉換，認不得就用今天 */
+function sitemapDate(d) {
+  const m = String(d || '').trim().match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  return m ? m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0') : today;
+}
 const urls = [{ loc: BASE + '/', pri: '1.0', mod: today },
   { loc: BASE + '/team/', pri: '0.8', mod: today },
-  { loc: BASE + '/notices/', pri: '0.7', mod: (noticeList[0] && noticeList[0].date) || today }].concat(
+  { loc: BASE + '/notices/', pri: '0.7', mod: sitemapDate(noticeList[0] && noticeList[0].date) }].concat(
   LANG_LIST.filter(l => l.href !== '/' && (!l.key || LANG_SW[l.key + 'Page'] !== false))
            .map(l => ({ loc: BASE + l.href, pri: '0.6', mod: today })),
-  articles.map(a => ({ loc: BASE + '/article/' + encodeURIComponent(a.slug) + '/', pri: '0.8', mod: a.date || today }))
+  articles.map(a => ({ loc: BASE + '/article/' + encodeURIComponent(a.slug) + '/', pri: '0.8', mod: sitemapDate(a.date) }))
 );
 fs.writeFileSync(path.join(ROOT, 'sitemap.xml'),
   '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +

@@ -11,7 +11,8 @@
 | 角色 | 正式站（對外營運中） |
 | GitHub | `drjennyleiclinic-lgtm/drjennyleiclinic-site` |
 | Cloudflare Worker 名稱 | `drjennyleiclinic` |
-| 實際網址 | `https://drjennyleiclinic.drjennyleiclinic.workers.dev` |
+| 正式網址 | `https://jennyleiclinic.com`（2026-10-29 起） |
+| 舊網址 | `https://drjennyleiclinic.drjennyleiclinic.workers.dev`：由 `worker.js` 301 轉到正式網址（`/admin` 除外，後台照舊從這裡登入） |
 
 另一個 repo 是 **練習站**：`joyseeker9453-sketch/PRACTICEMOVING`（網址 `https://practicemoving.joyseeker9453.workers.dev`）。
 兩邊程式碼幾乎相同，改動流程是「先在練習站做、驗證過再搬到正式站」。
@@ -23,16 +24,22 @@
 `content/site.json` 的 `baseUrl` 目前是：
 
 ```
-https://drjennyleiclinic.drjennyleiclinic.workers.dev
+https://jennyleiclinic.com
 ```
 
-**這是正確的，不要改。** 它必須等於這個 repo 實際被服務的網址。
+**這是正確的，不要改。** 它必須等於正式網址（自訂網域）。**絕對不要改回 workers.dev 網址**：
+canonical、sitemap、hreflang 都跟著它走，改回去 Google 會再搬一次家，搜尋排名又要重來。
 
-歷史背景：正式站的 baseUrl 曾經誤填成練習站的網址，導致 canonical / og:url 指向錯的站。
-那個問題已經在 2026-09-17 修正完畢並驗證過。如果你看到它是上表的值，**那就是對的狀態**。
+歷史背景（git 紀錄）：
+- 2026-09-15 ～ 10-27：baseUrl 誤填成練習站網址，canonical 指向練習站。
+- 10-27：改成 workers.dev 網址；10-29：綁定自訂網域，改成 `https://jennyleiclinic.com`。
+- 換網址時舊網址沒有轉址，約 11 月中 Google 把舊網址從搜尋結果拿掉，新網域還沒接上排名，
+  搜「晨昕診所」一度找不到。之後補了 `worker.js` 把 workers.dev 舊網址 301 轉到新網域。
 
-唯一需要改動的情況是綁定自訂網域（例如 `https://jenny-clinic.com`）。
-那時候由診所人員到後台「診所資料 → 網站網址」改，**不要改 code**，也不要幫忙「順手改好」。
+要換網域時，由診所人員到後台「診所資料 → 網站網址」改，**不要改 code**；
+同時要讓舊網址 301 轉到新網址（見 `worker.js`），不能只改 baseUrl。
+
+注意：舊站 `jenny-clinic.com` 是另一組人做的網站，跟這個 repo 無關。
 
 ---
 
@@ -68,6 +75,13 @@ index.html 的 <!--OG:START--> ~ <!--OG:END--> 區段
 - **`index.html` 會被 build.js 回頭覆寫一部分**。`OG:START` 到 `OG:END` 之間的
   canonical / og:url / og:image / schema.org 由 `baseUrl` 和 `site.json` 重新產生。
   在那區段裡手動改東西沒有意義，下次部署就沒了。那兩個標記也不能刪。
+- **首頁內文也會預先寫入（SEO）**：`SVC`、`HOURS`、`HOURS-NOTE`、`HOURS-EXTRA`、`TEAM`、
+  `HOME-ARTICLES`、`NEWS-GRID`、`CONTACT`、`F-ADDR` 這幾組 `<!--XXX:START/END-->` 標記之間，
+  由 build.js 的 `injectHomeBody()` 用跟首頁 JavaScript（`initStatic()`、`cardHTML()`）一樣的 HTML 填入，
+  讓 Google 不執行 JavaScript 也看得到內容和每篇文章的連結。改了其中一邊的 HTML，另一邊要一起改。
+- **連結一律要有 `href`**：Google 只會跟著 `<a href>` 走。首頁選單、文章卡片保留 onclick 做站內切換，
+  但都有真正的 href（文章卡片連到 `/article/<slug>/`），不要改回只有 onclick。
+- 外文頁的 hreflang 與 canonical 由 `HREFLANG` 標記區塊產生，網址一律是完整網址（Google 規定）。
 - repo 裡 committed 的 `data/*.json` 是**過期殘留**，跟 `content/` 對不上是正常的。
   每次部署都會重新產生，不需要修、也不需要 commit 更新版本。
 
