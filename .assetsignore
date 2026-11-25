@@ -7,4 +7,5 @@ build.js
 package.json
 package-lock.json
 wrangler.jsonc
+worker.js
 *.md
