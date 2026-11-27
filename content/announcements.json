@@ -31,6 +31,14 @@
       "show": false,
       "pinned": false,
       "heightMode": "inherit"
+    },
+    {
+      "title": "2026/11/28 照常營業",
+      "date": "2026-11-27",
+      "body": "2026/11/28 選舉日營業時間為 09:00-12:30。",
+      "show": true,
+      "pinned": true,
+      "heightMode": "inherit"
     }
   ]
 }
